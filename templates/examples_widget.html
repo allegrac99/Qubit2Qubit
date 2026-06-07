@@ -1,0 +1,408 @@
+{# ============================================================
+   examples_widget.html
+   Galleria di circuiti di esempio pre-costruiti.
+   
+   Uso:
+     Aggiungi `{% include "examples_widget.html" %}` prima di </body>
+     in transpile.html (DOPO il main script che definisce numQubits,
+     ops, draw, syncHidden, ecc).
+   
+   Funziona accedendo alle variabili globali dell'editor:
+   numQubits, ops, cols, nextOpId, draw, syncHidden, markDirty,
+   drawCouplingMap, ensureOpIds, setTwoQStatus, twoQMode, twoQPending.
+============================================================ #}
+
+<style>
+  /* ---- Examples modal ---- */
+  .examples-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .examples-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .example-card {
+    background: #fff;
+    border: 1px solid #f0b6d3;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all .18s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .example-card:hover {
+    border-color: #cc0669;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(204, 6, 105, .15);
+  }
+  .example-card:active {
+    transform: translateY(0);
+  }
+
+  .example-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .example-card-title {
+    font-weight: 700;
+    color: #123a6f;
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+  .example-badges {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .example-badge {
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge-qubits {
+    background: #e6f2ff;
+    color: #123a6f;
+    border: 1px solid #cfe6ff;
+  }
+  .badge-easy {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+  }
+  .badge-medium {
+    background: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffcc80;
+  }
+  .badge-hard {
+    background: #fce4ec;
+    color: #ad1457;
+    border: 1px solid #f48fb1;
+  }
+
+  .example-description {
+    font-size: .85rem;
+    color: #555;
+    line-height: 1.4;
+  }
+
+  .example-lesson {
+    font-size: .8rem;
+    color: #6b2b4a;
+    background: #fff7fb;
+    border-left: 3px solid #cc0669;
+    padding: 7px 9px;
+    border-radius: 0 6px 6px 0;
+    line-height: 1.45;
+    margin-top: auto;
+  }
+  .example-lesson strong {
+    color: #cc0669;
+  }
+</style>
+
+<div class="modal fade" id="examplesModal" tabindex="-1" aria-labelledby="examplesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#f0f7ff; border-bottom:1px solid #cfe6ff;">
+        <h5 class="modal-title" id="examplesModalLabel" style="color:#123a6f; font-weight:700;">
+          📋 {{ t("Circuit examples") }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('Close') }}"></button>
+      </div>
+      <div class="modal-body examples-modal-body">
+        <p class="text-muted small mb-3">
+          {{ t("Click an example to load it into the editor. Each example highlights a specific aspect of transpilation: start with the easy ones and progress from there.") }}
+        </p>
+        <div class="examples-grid" id="examplesGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var tr = window.q2qT || function(text) { return text; };
+
+  /* ============================================================
+     DATA: circuiti di esempio
+     Ogni esempio ha:
+       - id, name, qubits, difficulty
+       - description: what the circuit does
+       - lesson: what the student learns by loading it
+       - circuit_json: nel formato dell'editor
+  ============================================================ */
+  var CIRCUIT_EXAMPLES = [
+    {
+      id: 'bell',
+      name: 'Bell Pair',
+      qubits: 2,
+      difficulty: 'easy',
+      description: 'The simplest possible circuit: it creates entanglement between two qubits.',
+      lesson: 'With 2 qubits there are no connectivity issues. This is a good starting point for getting familiar with the editor and transpilation stages.',
+      circuit_json: {
+        num_qubits: 2,
+        depth: 10,
+        ops: [
+          { gate: 'h',  qubits: [0],    col: 0 },
+          { gate: 'cx', qubits: [0, 1], col: 1 }
+        ]
+      }
+    },
+    {
+      id: 'ghz',
+      name: 'GHZ State',
+      qubits: 3,
+      difficulty: 'easy',
+      description: '3-qubit entanglement using only gates between adjacent qubits.',
+      lesson: 'On a <strong>line</strong> topology, the router inserts no SWAP gates. This is a well-formed circuit for that coupling map: the trivial layout is already optimal.',
+      circuit_json: {
+        num_qubits: 3,
+        depth: 10,
+        ops: [
+          { gate: 'h',  qubits: [0],    col: 0 },
+          { gate: 'cx', qubits: [0, 1], col: 1 },
+          { gate: 'cx', qubits: [1, 2], col: 2 }
+        ]
+      }
+    },
+    {
+      id: 'long_range',
+      name: 'Long-range CX',
+      qubits: 3,
+      difficulty: 'medium',
+      description: 'A CX directly between q[0] and q[2], which are non-adjacent qubits on a line.',
+      lesson: 'A minimal example where the router <strong>must</strong> insert at least one SWAP. Compare the three routing methods: here they give similar results, but differences emerge with more gates.',
+      circuit_json: {
+        num_qubits: 3,
+        depth: 10,
+        ops: [
+          { gate: 'h',  qubits: [0],    col: 0 },
+          { gate: 'h',  qubits: [2],    col: 0 },
+          { gate: 'cx', qubits: [0, 2], col: 1 }
+        ]
+      }
+    },
+    {
+      id: 'qft_like',
+      name: 'QFT-style (3 qubit)',
+      qubits: 3,
+      difficulty: 'medium',
+      description: 'A mixed H/CX pattern inspired by the Quantum Fourier Transform.',
+      lesson: 'Several alternating 2-qubit gates. Changing the <strong>layout</strong> (for example trivial vs sabre) significantly changes the number of SWAPs: ideal for comparing methods.',
+      circuit_json: {
+        num_qubits: 3,
+        depth: 10,
+        ops: [
+          { gate: 'h',  qubits: [0],    col: 0 },
+          { gate: 'cx', qubits: [0, 1], col: 1 },
+          { gate: 'h',  qubits: [1],    col: 2 },
+          { gate: 'cx', qubits: [1, 2], col: 3 },
+          { gate: 'cx', qubits: [0, 2], col: 4 },
+          { gate: 'h',  qubits: [2],    col: 5 }
+        ]
+      }
+    },
+    {
+      id: 'star',
+      name: 'Star pattern',
+      qubits: 4,
+      difficulty: 'hard',
+      description: 'A central qubit (q[0]) interacting with all the others.',
+      lesson: 'A very expensive pattern to route on a <strong>line</strong>. Try changing the topology to <strong>ring</strong> and observe how the SWAP count changes. Topology matters as much as the algorithm.',
+      circuit_json: {
+        num_qubits: 4,
+        depth: 10,
+        ops: [
+          { gate: 'h',  qubits: [0],    col: 0 },
+          { gate: 'h',  qubits: [1],    col: 0 },
+          { gate: 'h',  qubits: [2],    col: 0 },
+          { gate: 'h',  qubits: [3],    col: 0 },
+          { gate: 'cx', qubits: [0, 1], col: 1 },
+          { gate: 'cx', qubits: [0, 2], col: 2 },
+          { gate: 'cx', qubits: [0, 3], col: 3 }
+        ]
+      }
+    },
+    {
+      id: 'clifford_random',
+      name: 'Random Clifford (3q)',
+      qubits: 3,
+      difficulty: 'medium',
+      description: 'A Clifford operator with H, S, and CX.',
+      lesson: 'Useful for the <strong>Clifford synthesis</strong> page: compare how the synthesizers (Greedy, Aaronson-Gottesman, RL) decompose the same operator in different ways.',
+      circuit_json: {
+        num_qubits: 3,
+        depth: 10,
+        ops: [
+          { gate: 'h',   qubits: [0],    col: 0 },
+          { gate: 's',   qubits: [1],    col: 0 },
+          { gate: 'cx',  qubits: [0, 1], col: 1 },
+          { gate: 'h',   qubits: [2],    col: 1 },
+          { gate: 'cx',  qubits: [1, 2], col: 2 },
+          { gate: 's',   qubits: [0],    col: 2 }
+        ]
+      }
+    },
+    {
+      id: 'linear_chain',
+      name: 'Linear chain (4q)',
+      qubits: 4,
+      difficulty: 'easy',
+      description: 'A CX chain between consecutive qubits: 0->1->2->3.',
+      lesson: 'On a <strong>line</strong>, the router inserts no SWAPs: all CX gates are already between adjacent qubits. Compare this with the star pattern to see how much circuit structure matters.',
+      circuit_json: {
+        num_qubits: 4,
+        depth: 10,
+        ops: [
+          { gate: 'h',  qubits: [0],    col: 0 },
+          { gate: 'cx', qubits: [0, 1], col: 1 },
+          { gate: 'cx', qubits: [1, 2], col: 2 },
+          { gate: 'cx', qubits: [2, 3], col: 3 }
+        ]
+      }
+    }
+  ];
+
+  /* ============================================================
+     LOAD FUNCTION
+     Accede ai globali definiti dal main script.
+  ============================================================ */
+  function loadExample(example) {
+    // Conferma se l'editor non è vuoto
+    if (typeof ops !== 'undefined' && Array.isArray(ops) && ops.length > 0) {
+      if (!confirm(tr('Do you want to replace the current circuit with the example') + ' "' + tr(example.name) + '"?')) {
+        return;
+      }
+    }
+
+    var cj = example.circuit_json;
+
+    // Update editor state
+    numQubits = cj.num_qubits;
+    cols = Math.max(10, cj.depth || 10);
+    // Deep-ish copy degli ops per evitare aliasing
+    ops = (cj.ops || []).map(function(op) {
+      return {
+        gate: op.gate,
+        qubits: op.qubits.slice(),
+        col: op.col
+      };
+    });
+    nextOpId = 1;
+
+    // Reset modalità 2Q
+    twoQMode = false;
+    twoQPending = null;
+    var twoQToolBtn = document.getElementById('twoQTool');
+    if (twoQToolBtn) twoQToolBtn.classList.remove('active');
+
+    // Aggiorna il campo "Number of qubits"
+    var nqInput = document.getElementById('num_qubits');
+    if (nqInput) nqInput.value = String(numQubits);
+
+    // Assegna ID univoci e ridisegna
+    if (typeof ensureOpIds === 'function') ensureOpIds();
+    if (typeof setTwoQStatus === 'function') setTwoQStatus();
+    if (typeof draw === 'function') draw();
+    if (typeof syncHidden === 'function') syncHidden();
+
+    // Invalida layout e routing (l'editor è cambiato)
+    if (typeof markDirty === 'function') markDirty();
+    if (typeof drawCouplingMap === 'function') drawCouplingMap();
+    if (typeof drawLayoutMapIfAvailable === 'function') drawLayoutMapIfAvailable();
+
+    // Pulisci eventuali predizioni stale
+    try { sessionStorage.removeItem('routing_prediction'); } catch (e) {}
+
+    // Close il modal
+    var modalEl = document.getElementById('examplesModal');
+    if (modalEl && window.bootstrap) {
+      var bsModal = bootstrap.Modal.getInstance(modalEl);
+      if (bsModal) bsModal.hide();
+    }
+
+    // Scrolla all'editor
+    setTimeout(function() {
+      var sec = document.getElementById('section-editor');
+      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
+
+  /* ============================================================
+     RENDER MODAL GRID
+  ============================================================ */
+  function renderGrid() {
+    var grid = document.getElementById('examplesGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    CIRCUIT_EXAMPLES.forEach(function(ex) {
+      var card = document.createElement('div');
+      card.className = 'example-card';
+
+      var diffClass = 'badge-easy';
+      var diffLabel = ex.difficulty || 'easy';
+      if (diffLabel === 'medium') diffClass = 'badge-medium';
+      else if (diffLabel === 'hard') diffClass = 'badge-hard';
+
+      card.innerHTML =
+        '<div class="example-card-header">' +
+          '<div class="example-card-title">' + tr(ex.name) + '</div>' +
+          '<div class="example-badges">' +
+            '<span class="example-badge badge-qubits">' + ex.qubits + 'q</span>' +
+            '<span class="example-badge ' + diffClass + '">' + tr(diffLabel) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="example-description">' + tr(ex.description) + '</div>' +
+        '<div class="example-lesson"><strong>' + tr('What you learn:') + '</strong> ' + tr(ex.lesson) + '</div>';
+
+      card.addEventListener('click', function() { loadExample(ex); });
+      grid.appendChild(card);
+    });
+  }
+
+  /* ============================================================
+     INJECT BUTTON in the editor toolbar
+  ============================================================ */
+  function injectButton() {
+    var saveBtn = document.getElementById('saveQasmBtn');
+    if (!saveBtn || !saveBtn.parentNode) return;
+
+    // Evita doppio inject
+    if (document.getElementById('loadExampleBtn')) return;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'loadExampleBtn';
+    btn.className = 'btn btn-outline-secondary';
+    btn.innerHTML = '\ud83d\udccb ' + tr('Examples');
+    btn.setAttribute('data-bs-toggle', 'modal');
+    btn.setAttribute('data-bs-target', '#examplesModal');
+
+    // Insert before the Save (QASM) button
+    saveBtn.parentNode.insertBefore(btn, saveBtn);
+  }
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  document.addEventListener('DOMContentLoaded', function() {
+    renderGrid();
+    injectButton();
+    if (window.q2qTranslateNode) window.q2qTranslateNode(document.getElementById('examplesModal'));
+  });
+})();
+</script>
