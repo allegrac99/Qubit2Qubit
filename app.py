@@ -123,8 +123,19 @@ def add_project_root_to_sys_path(current_file, target_subdir):
 
 
 add_project_root_to_sys_path(__file__, 'RL')
-from RL.synthesis_env import SynthesisEnv
-from RL.synthesize import *
+RL_AVAILABLE = False
+synthesize = None
+try:
+    import sb3_contrib  # noqa: F401
+    from RL.synthesize import MODEL_PATH__3q, MODEL_PATH__5q, synthesize
+
+    RL_AVAILABLE = all(
+        os.path.exists(path + ".zip")
+        for path in (MODEL_PATH__3q, MODEL_PATH__5q)
+    )
+except Exception:
+    # RL is optional: the rest of the webapp must work without its dependencies.
+    synthesize = None
 
 
 app = Flask(__name__)
@@ -503,7 +514,9 @@ CLIFFORD_ALGO_OPTIONS = {
     "RL": "RL",
 }
 
-SYNTH_COMPARE_ORDER = ["clifford_greedy", "clifford_ag", "RL"]
+SYNTH_COMPARE_ORDER = ["clifford_greedy", "clifford_ag"]
+if RL_AVAILABLE:
+    SYNTH_COMPARE_ORDER.append("RL")
 
 SYNTH_METHOD_LABELS = {
     "clifford_greedy": "Greedy",
@@ -1553,10 +1566,10 @@ def clifford_synthesis_view():
     def _cliff_ui_options(n: int):
         if n == 3:
             map_opts = {"line": "Line", "ring": "Ring"}
-            rl_enabled = True
+            rl_enabled = RL_AVAILABLE
         elif n == 5:
             map_opts = {"line": "Line", "ring": "Ring", "star": "Star", "further_map": "Further map"}
-            rl_enabled = True
+            rl_enabled = RL_AVAILABLE
         else:
             map_opts = {"line": "Line", "ring": "Ring"}
             rl_enabled = False
@@ -1567,7 +1580,6 @@ def clifford_synthesis_view():
             algo_opts = {
                 "clifford_greedy": "Greedy",
                 "clifford_ag": "AG",
-                "RL": "RL (only 3/5 qubits)"
             }
 
         return map_opts, algo_opts, rl_enabled
@@ -1757,6 +1769,8 @@ def clifford_synthesis_view():
 
             cliff_selected_map = request.form.get("cliff_map_type", "line")
             cliff_selected_algo = request.form.get("clifford_algo", "clifford_greedy")
+            if cliff_selected_algo == "RL" and not RL_AVAILABLE:
+                cliff_selected_algo = "clifford_greedy"
             cliff_layout_str = ""
 
             # restore persisted outputs (so Display/Hide do not kill tableau/synthesis)
@@ -2237,6 +2251,7 @@ def clifford_synthesis_view():
         map_options=ui_map_options,
         clifford_algo_options=ui_algo_options,
         rl_enabled=rl_enabled,
+        rl_available=RL_AVAILABLE,
         rl_note=rl_note,
 
         synthesis_docs=SYNTHESIS_DOCS,

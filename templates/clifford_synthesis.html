@@ -315,10 +315,12 @@
                 <strong>{{ t("What do depth and CX depth mean?") }}</strong>
                 {{ t("Circuit depth is the number of sequential operation layers: gates acting on independent qubits can run in parallel in the same layer, while gates sharing qubits must run in different layers. CX depth counts only the sequential layers of CX gates. Lower depth generally means a shorter execution time and less exposure to noise, while lower CX depth specifically reduces the impact of costly 2-qubit operations.") }}
               </div>
+              {% if rl_available %}
               <div class="key-concept">
                 <strong>{{ t("💡 Key insight:") }}</strong>
                 {{ t("Any n-qubit Clifford operator can be implemented with at most O(n²/log n) CX gates (Aaronson-Gottesman). But for specific operators on specific topologies, smarter algorithms (like RL-based synthesis) can find much shorter circuits.") }}
               </div>
+              {% endif %}
               <p style="margin-top:10px;">
                 <strong>{{ t("🔗 Further reading:") }}</strong>
                 <a href="https://learning.quantum.ibm.com/course/basics-of-quantum-information" target="_blank" rel="noopener">IBM Quantum Learning</a> |
@@ -444,17 +446,21 @@
                   <td style="padding:6px 10px; border:1px solid #eee;">{{ t("Deterministic algorithm with O(n²/log n) CX gate bound. Follows a fixed decomposition strategy based on the tableau structure.") }}</td>
                   <td style="padding:6px 10px; border:1px solid #eee;">No (routing added after)</td>
                 </tr>
+                {% if rl_available %}
                 <tr>
                   <td style="padding:6px 10px; border:1px solid #eee; font-weight:700; color:#123a6f;">RL (Reinforcement Learning)</td>
                   <td style="padding:6px 10px; border:1px solid #eee;">A trained agent that learns to synthesize Clifford operators <strong>directly respecting the coupling map</strong>. Available for 3 and 5 qubits.</td>
                   <td style="padding:6px 10px; border:1px solid #eee; color:#2e7d32; font-weight:700;">Yes (native)</td>
                 </tr>
+                {% endif %}
               </table>
 
+              {% if rl_available %}
               <div class="key-concept">
                 <strong>{{ t("💡 Key difference:") }}</strong>
                 {{ t("Greedy and AG synthesize the circuit ignoring the topology, then a routing pass adds SWAPs afterwards. The RL agent synthesizes directly for the target topology, often producing shorter circuits with fewer SWAPs. Use the Compare button to see the difference on your operator.") }}
               </div>
+              {% endif %}
             </div>
           </details>
           <h6 class="section-title" style="font-size:1.05rem;">Clifford synthesis</h6>
@@ -497,7 +503,7 @@
                 <a id="clifford_doc_link_loaded" href="#" target="_blank" rel="noopener">—</a>
               </div>
 
-              {% if not rl_enabled %}
+              {% if rl_available and not rl_enabled %}
                 <div class="hint mt-1">RL can be selected only for Clifford operators with 3 or 5 qubits.</div>
               {% endif %}
             </div>
@@ -781,16 +787,20 @@
                   <td style="padding:6px 10px; border:1px solid #eee;">{{ t("Deterministic, O(n²/log n) CX gates. Fixed decomposition strategy.") }}</td>
                   <td style="padding:6px 10px; border:1px solid #eee;">No (routing added after)</td>
                 </tr>
+                {% if rl_available %}
                 <tr>
                   <td style="padding:6px 10px; border:1px solid #eee; font-weight:700; color:#123a6f;">RL</td>
                   <td style="padding:6px 10px; border:1px solid #eee;">Trained agent that synthesizes <strong>directly respecting the coupling map</strong>. Available for 3 and 5 qubits.</td>
                   <td style="padding:6px 10px; border:1px solid #eee; color:#2e7d32; font-weight:700;">Yes (native)</td>
                 </tr>
+                {% endif %}
               </table>
+              {% if rl_available %}
               <div class="key-concept">
                 <strong>{{ t("💡 Key difference:") }}</strong>
                 {{ t("Greedy and AG ignore topology, then routing adds SWAPs. The RL agent synthesizes directly for the target topology, often producing shorter circuits. Use Compare to see the difference.") }}
               </div>
+              {% endif %}
             </div>
           </details>
 
@@ -834,7 +844,7 @@
                 <a id="clifford_doc_link_build" href="#" target="_blank" rel="noopener">—</a>
               </div>
 
-              {% if not rl_enabled %}
+              {% if rl_available and not rl_enabled %}
                 <div class="hint mt-1">RL can be selected only for Clifford operators with 3 or 5 qubits.</div>
               {% endif %}
             </div>
