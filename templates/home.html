@@ -2,6 +2,7 @@
 <html lang="{{ current_lang }}">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Qubit2Qubit</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
@@ -30,7 +31,14 @@
     .top-logos img{
       height: 54px;          /* cambia qui la dimensione */
       width: auto;
+      max-width: 42vw;
       object-fit: contain;
+    }
+
+    @media (max-width: 576px) {
+      .container { padding-left: 16px; padding-right: 16px; }
+      .title-q2q { font-size: 38px; overflow-wrap: anywhere; }
+      .top-logos img { height: 42px; }
     }
   </style>
 </head>
