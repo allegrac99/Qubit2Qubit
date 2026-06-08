@@ -683,7 +683,7 @@ UI_TRANSLATIONS["it"].update({
     "non-adjacent": "non adiacenti",
     "qubits (for example q[0]-q[2] with a \"line\" coupling map). You can also load an example from the": "qubit (per esempio q[0]-q[2] con un coupling map \"line\"). Puoi anche caricare un esempio dalla galleria",
     "Quantum gate guide": "Guida ai gate quantistici",
-    "Each gate transforms the state of one or more qubits. Hover over a gate in the palette for a quick description. Below you will find a complete reference.": "Ogni gate trasforma lo stato di uno o più qubit. Passa il mouse su un gate nella palette per una descrizione rapida. Qui sotto trovi un riferimento completo.",
+    "Each gate transforms the state of one or more qubits. Below you will find a complete reference.": "Ogni gate trasforma lo stato di uno o più qubit. Qui sotto trovi un riferimento completo.",
     "1-qubit gates: Pauli": "Gate a 1 qubit: Pauli",
     "Gate": "Gate",
     "Description": "Descrizione",
