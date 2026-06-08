@@ -182,6 +182,8 @@
 
     function translateNode(node) {
       if (!node || skipTags.has(node.nodeName)) return;
+      const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+      if (element && element.closest("#tutorMessages")) return;
       if (node.nodeType === Node.TEXT_NODE) {
         const translated = translateText(node.nodeValue);
         if (translated) {

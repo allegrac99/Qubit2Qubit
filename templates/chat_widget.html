@@ -276,11 +276,8 @@
      CONFIG
   ============================================================ */
   var ENDPOINT = '/api/chat';
-  var TRANSLATE_ENDPOINT = '/api/translate_chat';
   var STORAGE_KEY = 'tutor_chat_history_v1:' + window.location.pathname;
-  var LANG_STORAGE_KEY = 'tutor_chat_lang_v1:' + window.location.pathname;
   var MAX_HISTORY = 30;
-  var CURRENT_LANG = '{{ current_lang }}';
   var tr = window.q2qT || function(text) { return text; };
 
   /* ============================================================
@@ -288,8 +285,6 @@
   ============================================================ */
   var messages = [];
   var isLoading = false;
-  var isTranslating = false;
-  var translationError = '';
 
   /* ============================================================
      DOM REFS
@@ -311,52 +306,11 @@
       if (raw) messages = JSON.parse(raw) || [];
     } catch (e) { messages = []; }
   }
-  function saveHistory(updateStoredLang) {
+  function saveHistory() {
     try {
       var slice = messages.slice(-MAX_HISTORY);
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(slice));
-      if (updateStoredLang !== false) {
-        sessionStorage.setItem(LANG_STORAGE_KEY, CURRENT_LANG);
-      }
     } catch (e) {}
-  }
-  function getStoredLang() {
-    try { return sessionStorage.getItem(LANG_STORAGE_KEY) || null; } catch (e) { return null; }
-  }
-
-  /* ============================================================
-     TRANSLATION
-  ============================================================ */
-  function translateHistory(callback) {
-    if (!messages.length) { callback(); return; }
-    isTranslating = true;
-    renderMessages();
-
-    fetch(TRANSLATE_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        target_lang: CURRENT_LANG,
-        messages: messages.map(function(m) { return { role: m.role, content: m.content, error: !!m.error }; })
-      })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.messages && data.messages.length) {
-        messages = data.messages;
-      }
-      translationError = data.error ? (data.detail || tr('Chat translation unavailable: Gemini quota has been reached. Try again later.')) : '';
-    })
-    .catch(function() {
-      translationError = tr('Chat translation unavailable: Gemini quota has been reached. Try again later.');
-    })
-    .then(function() {
-      isTranslating = false;
-      // Record that this language change was handled even if Gemini could not
-      // translate it, so a normal page reload does not trigger the warning again.
-      saveHistory(true);
-      callback();
-    });
   }
 
   /* ============================================================
@@ -581,27 +535,10 @@
       msgsEl.appendChild(div);
     });
 
-    if (translationError) {
-      var err = document.createElement('div');
-      err.className = 'tutor-msg tutor-msg-error';
-      err.textContent = translationError;
-      msgsEl.appendChild(err);
-    }
-
-    if (isLoading || isTranslating) {
+    if (isLoading) {
       var t = document.createElement('div');
       t.className = 'tutor-typing show';
-      if (isTranslating) {
-        var note = document.createElement('span');
-        note.style.cssText = 'font-size:.8rem;color:#6b2b4a;margin-left:6px;';
-        note.textContent = tr('Translating conversation') + '…';
-        t.appendChild(document.createElement('span')).className = 'tutor-typing-dot';
-        t.appendChild(document.createElement('span')).className = 'tutor-typing-dot';
-        t.appendChild(document.createElement('span')).className = 'tutor-typing-dot';
-        t.appendChild(note);
-      } else {
-        t.innerHTML = '<span class="tutor-typing-dot"></span><span class="tutor-typing-dot"></span><span class="tutor-typing-dot"></span>';
-      }
+      t.innerHTML = '<span class="tutor-typing-dot"></span><span class="tutor-typing-dot"></span><span class="tutor-typing-dot"></span>';
       msgsEl.appendChild(t);
     }
 
@@ -615,9 +552,6 @@
     var text = (inputEl.value || '').trim();
     if (!text || isLoading) return;
 
-    // A translation warning belongs only to the language-change attempt that
-    // produced it. Once the user continues chatting, do not show it again.
-    translationError = '';
     messages.push({ role: 'user', content: text });
     inputEl.value = '';
     inputEl.style.height = 'auto';
@@ -705,15 +639,6 @@
      INIT
   ============================================================ */
   loadHistory();
-  var storedLang = getStoredLang();
-  if (storedLang && storedLang !== CURRENT_LANG && messages.length > 0) {
-    // Language changed: translate existing history then render
-    translateHistory(function() { renderMessages(); });
-  } else {
-    // Existing histories created before language tracking belong to the
-    // currently displayed language and must not trigger a translation attempt.
-    if (!storedLang) saveHistory(true);
-    renderMessages();
-  }
+  renderMessages();
 })();
 </script>
