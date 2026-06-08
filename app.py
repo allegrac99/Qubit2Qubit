@@ -573,10 +573,16 @@ def count_ops(qc: QuantumCircuit, name: str) -> int:
     return sum(1 for inst, _, _ in qc.data if inst.name == name)
 
 
+def count_inserted_swaps(original: QuantumCircuit, routed: QuantumCircuit) -> int:
+    return max(0, count_ops(routed, "swap") - count_ops(original, "swap"))
+
+
+def draw_routed_circuit(qc: QuantumCircuit):
+    return qc.draw(output="text", idle_wires=True)
+
+
 def routing_comments(original: QuantumCircuit, routed: QuantumCircuit):
-    orig_swap = count_ops(original, "swap")
-    routed_swap = count_ops(routed, "swap")
-    added_swap = max(0, routed_swap - orig_swap)
+    added_swap = count_inserted_swaps(original, routed)
     if added_swap > 0:
         return [f"Routing inserted {added_swap} SWAP gate(s) to satisfy the coupling map."]
     return ["Routing did not insert any SWAP gates."]
@@ -745,7 +751,7 @@ def swap_to_3cx_text(qc: QuantumCircuit):
         decomp = qc.decompose(gates_to_decompose=["swap"])
         if count_ops(qc, "swap") == count_ops(decomp, "swap"):
             return None, None
-        return decomp.draw(output="text"), compute_stats(decomp)
+        return draw_routed_circuit(decomp), compute_stats(decomp)
     except Exception:
         return None, None
 
@@ -1007,7 +1013,7 @@ def transpile_view():
         if action != "clear_all":
             qc_for_view = _load_qc_or_error()
 
-            if qc_for_view is not None and action == "render_circuit":
+            if qc_for_view is not None and action in ("render_circuit", "apply_routing", "compare_routing", "apply_translation"):
                 original_circuit_text = str(qc_for_view.draw(output="text"))
                 original_stats = compute_stats(qc_for_view)
 
@@ -1189,9 +1195,9 @@ def transpile_view():
                         if routing_error is None:
                             try:
                                 tqc_routed = run_routing_only(qc, coupling_map, layout_list, selected_routing)
-                                routed_circuit_text = str(tqc_routed.draw(output="text"))
+                                routed_circuit_text = str(draw_routed_circuit(tqc_routed))
                                 routed_stats = compute_stats(tqc_routed)
-                                routed_swap_count = count_ops(tqc_routed, "swap")
+                                routed_swap_count = count_inserted_swaps(qc, tqc_routed)
                                 routing_notes = routing_comments(qc, tqc_routed)
                                 routed_circuit_text_cx, routed_stats_cx = swap_to_3cx_text(tqc_routed)
                                 routing_compare_results = None
@@ -1233,8 +1239,8 @@ def transpile_view():
                                 doc = ROUTING_DOCS.get(m, "")
                                 try:
                                     tq = run_routing_only(qc, coupling_map, layout_list, m)
-                                    txt = str(tq.draw(output="text"))
-                                    sc = count_ops(tq, "swap")
+                                    txt = str(draw_routed_circuit(tq))
+                                    sc = count_inserted_swaps(qc, tq)
                                     st = compute_stats(tq)
                                     txt_cx, _ = swap_to_3cx_text(tq)
                                     compare.append({
@@ -1310,9 +1316,9 @@ def transpile_view():
             if routed_for_hash == expected:
                 try:
                     qc_routed = QuantumCircuit.from_qasm_str(routed_qasm_str)
-                    routed_circuit_text = str(qc_routed.draw(output="text"))
+                    routed_circuit_text = str(draw_routed_circuit(qc_routed))
                     routed_stats = compute_stats(qc_routed)
-                    routed_swap_count = count_ops(qc_routed, "swap")
+                    routed_swap_count = count_inserted_swaps(qc_for_view, qc_routed)
                     routed_circuit_text_cx, routed_stats_cx = swap_to_3cx_text(qc_routed)
                     if qc_for_view is not None:
                         routing_notes = routing_comments(qc_for_view, qc_routed)

@@ -967,6 +967,7 @@
                   <!-- Q2: Depth impact -->
                   {% if original_stats %}
                   <div class="quiz-item"
+                       data-depth-change="{% if routed_stats.depth > original_stats.depth %}increase{% elif routed_stats.depth == original_stats.depth %}same{% else %}decrease{% endif %}"
                        data-correct="{% if routed_stats.depth > original_stats.depth %}a{% elif routed_stats.depth == original_stats.depth %}b{% else %}c{% endif %}">
                     <p class="quiz-q">
                       The depth was <strong>{{ original_stats.depth }}</strong> and is now
@@ -1488,8 +1489,8 @@
       if (name === "rq1") {
         msg = isCorrect ? EXPLANATIONS.rq1.a : EXPLANATIONS.rq1.wrong;
       } else if (name === "rq2") {
-        msg = isCorrect ? (EXPLANATIONS.rq2[`${val}_${correctAns === val ? val : 'x'}`] || EXPLANATIONS.rq2[`a_increase`] || "") : (EXPLANATIONS.rq2[`wrong_{{ 'increase' if routed_stats and original_stats and routed_stats.depth > original_stats.depth else 'same' }}`] || "");
-        // simpler:
+        const depthChange = item.dataset.depthChange || "same";
+        msg = isCorrect ? (EXPLANATIONS.rq2[`${val}_${depthChange}`] || "") : (EXPLANATIONS.rq2[`wrong_${depthChange}`] || "");
         if (!msg) msg = isCorrect ? tr("Correct! Good reasoning.") : tr("Not correct. Reread the routing theory and try again.");
       } else if (name === "rq3") {
         msg = isCorrect ? EXPLANATIONS.rq3.b : EXPLANATIONS.rq3.wrong;
