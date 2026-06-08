@@ -831,7 +831,7 @@ UI_TRANSLATIONS["it"].update({
     "load a Clifford operator": "caricare un operatore di Clifford",
     "(tableau) and synthesize it.": "(tableau) e sintetizzarlo.",
     "Synthesis methods compared": "Confronto dei metodi di sintesi",
-    "Three algorithms are available. Each makes different trade-offs between circuit quality, speed, and hardware awareness:": "Sono disponibili tre algoritmi. Ognuno offre compromessi diversi tra qualità del circuito, velocità e consapevolezza dell'hardware:",
+    "Two algorithms are available. Each makes different trade-offs between circuit quality, speed, and hardware awareness:": "Sono disponibili due algoritmi. Ognuno offre compromessi diversi tra qualità del circuito, velocità e consapevolezza dell'hardware:",
     "Method": "Metodo",
     "How it works": "Come funziona",
     "Topology-aware?": "Consapevole della topologia?",
