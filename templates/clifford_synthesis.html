@@ -530,7 +530,15 @@
           <div id="section-synthesis-output" class="mt-3">
             {% if cliff_synth_circuit_text %}
               <hr>
-              <h6>After synthesis</h6>
+              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <h6 class="mb-0">After synthesis</h6>
+                {% if cliff_synth_qasm %}
+                  <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                          data-filename="synthesized_clifford.qasm" data-qasm="{{ cliff_synth_qasm|e }}">
+                    Save (QASM)
+                  </button>
+                {% endif %}
+              </div>
               <pre>{{ cliff_synth_circuit_text }}</pre>
               {% if cliff_synth_stats %}
                 <ul class="small">
@@ -578,12 +586,21 @@
                       {% endif %}
                     </div>
 
-                    {% if item.docs %}
-                      <a class="btn btn-outline-secondary btn-sm"
-                        href="{{ item.docs }}" target="_blank" rel="noopener">
-                        Docs
-                      </a>
-                    {% endif %}
+                    <div class="d-flex gap-2 flex-wrap">
+                      {% if item.circuit_qasm %}
+                        <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                                data-filename="synthesized_{{ item.method|lower|replace(' ', '_') }}.qasm"
+                                data-qasm="{{ item.circuit_qasm|e }}">
+                          Save (QASM)
+                        </button>
+                      {% endif %}
+                      {% if item.docs %}
+                        <a class="btn btn-outline-secondary btn-sm"
+                          href="{{ item.docs }}" target="_blank" rel="noopener">
+                          Docs
+                        </a>
+                      {% endif %}
+                    </div>
                   </div>
 
                   {% if item.error %}
@@ -871,7 +888,15 @@
           <div id="section-synthesis-output" class="mt-3">
             {% if cliff_synth_circuit_text %}
               <hr>
-              <h6>After synthesis</h6>
+              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <h6 class="mb-0">After synthesis</h6>
+                {% if cliff_synth_qasm %}
+                  <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                          data-filename="synthesized_clifford.qasm" data-qasm="{{ cliff_synth_qasm|e }}">
+                    Save (QASM)
+                  </button>
+                {% endif %}
+              </div>
               <pre>{{ cliff_synth_circuit_text }}</pre>
               {% if cliff_synth_stats %}
                 <ul class="small">
@@ -919,12 +944,21 @@
                       {% endif %}
                     </div>
 
-                    {% if item.docs %}
-                      <a class="btn btn-outline-secondary btn-sm"
-                        href="{{ item.docs }}" target="_blank" rel="noopener">
-                        Docs
-                      </a>
-                    {% endif %}
+                    <div class="d-flex gap-2 flex-wrap">
+                      {% if item.circuit_qasm %}
+                        <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                                data-filename="synthesized_{{ item.method|lower|replace(' ', '_') }}.qasm"
+                                data-qasm="{{ item.circuit_qasm|e }}">
+                          Save (QASM)
+                        </button>
+                      {% endif %}
+                      {% if item.docs %}
+                        <a class="btn btn-outline-secondary btn-sm"
+                          href="{{ item.docs }}" target="_blank" rel="noopener">
+                          Docs
+                        </a>
+                      {% endif %}
+                    </div>
                   </div>
 
                   {% if item.error %}
@@ -1672,6 +1706,27 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   });
 })();
+
+function downloadResultQasm(filename, qasm){
+  const blob = new Blob([qasm], {type: "application/qasm"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+document.querySelectorAll(".save-result-qasm").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    try{
+      downloadResultQasm(btn.dataset.filename || "synthesized_clifford.qasm", btn.dataset.qasm || "");
+    }catch(e){
+      alert(q2qT("Save failed") + ": " + e);
+    }
+  });
+});
 
 /* ============================
    Docs link: update instantly on select change

@@ -888,6 +888,7 @@ def transpile_view():
     routed_for_hash = ""
 
     translated_circuit_text = None
+    translated_qasm_str = ""
     translated_stats = None
     translation_error = None
 
@@ -1005,8 +1006,9 @@ def transpile_view():
             routed_for_hash = ""
 
         def _clear_translation_outputs_only():
-            nonlocal translated_circuit_text, translated_stats, translation_error
+            nonlocal translated_circuit_text, translated_qasm_str, translated_stats, translation_error
             translated_circuit_text = None
+            translated_qasm_str = ""
             translated_stats = None
             translation_error = None
 
@@ -1249,6 +1251,7 @@ def transpile_view():
                                         "swap_count": sc,
                                         "stats": st,
                                         "circuit_text": txt,
+                                        "circuit_qasm": qasm2_dumps(tq),
                                         "circuit_text_cx": txt_cx,
                                     })
                                 except Exception as e:
@@ -1258,6 +1261,7 @@ def transpile_view():
                                         "swap_count": None,
                                         "stats": None,
                                         "circuit_text": f"Failed: {type(e).__name__}: {e}",
+                                        "circuit_qasm": None,
                                         "circuit_text_cx": None,
                                     })
 
@@ -1290,6 +1294,7 @@ def transpile_view():
                         qc_translated = translate_circuit_basis_translator(qc_routed, basis_gates)
 
                         translated_circuit_text = str(qc_translated.draw(output="text"))
+                        translated_qasm_str = qasm2_dumps(qc_translated)
                         translated_stats = compute_stats(qc_translated)
 
                     except Exception as e:
@@ -1371,6 +1376,7 @@ def transpile_view():
         routed_for_hash=routed_for_hash,
 
         translated_circuit_text=translated_circuit_text,
+        translated_qasm_str=translated_qasm_str,
         translated_stats=translated_stats,
         translation_error=translation_error,
 
@@ -1619,6 +1625,7 @@ def clifford_synthesis_view():
 
     # Synthesis output (persisted only if hash matches)
     cliff_synth_circuit_text = None
+    cliff_synth_qasm = None
     cliff_synth_stats = None
     cliff_synth_swap_count = None
     cliff_synth_circuit_text_cx = None
@@ -1648,13 +1655,14 @@ def clifford_synthesis_view():
         session.pop("cliff_synth_src", None)   # "build" or "loaded"
         session.pop("cliff_synth_hash", None)  # hash circuito o operatore
         session.pop("cliff_synth_text", None)
+        session.pop("cliff_synth_qasm", None)
         session.pop("cliff_synth_stats", None)
         session.pop("cliff_synth_swap_count", None)
         session.pop("cliff_synth_text_cx", None)
         session.pop("cliff_synth_stats_cx", None)
 
     def _restore_synth_from_session():
-        nonlocal cliff_synth_circuit_text, cliff_synth_stats, cliff_synth_swap_count
+        nonlocal cliff_synth_circuit_text, cliff_synth_qasm, cliff_synth_stats, cliff_synth_swap_count
         nonlocal cliff_synth_circuit_text_cx, cliff_synth_stats_cx
 
         src = session.get("cliff_synth_src", None)
@@ -1662,6 +1670,7 @@ def clifford_synthesis_view():
 
         if src == "build" and h and h == _circuit_hash():
             cliff_synth_circuit_text = session.get("cliff_synth_text", None)
+            cliff_synth_qasm = session.get("cliff_synth_qasm", None)
             cliff_synth_stats = session.get("cliff_synth_stats", None)
             cliff_synth_swap_count = session.get("cliff_synth_swap_count", None)
             cliff_synth_circuit_text_cx = session.get("cliff_synth_text_cx", None)
@@ -1670,6 +1679,7 @@ def clifford_synthesis_view():
 
         if src == "loaded" and h and h == _loaded_tableau_hash():
             cliff_synth_circuit_text = session.get("cliff_synth_text", None)
+            cliff_synth_qasm = session.get("cliff_synth_qasm", None)
             cliff_synth_stats = session.get("cliff_synth_stats", None)
             cliff_synth_swap_count = session.get("cliff_synth_swap_count", None)
             cliff_synth_circuit_text_cx = session.get("cliff_synth_text_cx", None)
@@ -1677,6 +1687,7 @@ def clifford_synthesis_view():
             return
 
         cliff_synth_circuit_text = None
+        cliff_synth_qasm = None
         cliff_synth_stats = None
         cliff_synth_swap_count = None
         cliff_synth_circuit_text_cx = None
@@ -2000,6 +2011,7 @@ def clifford_synthesis_view():
 
                             if tqc is not None:
                                 cliff_synth_circuit_text = str(tqc.draw(output="text"))
+                                cliff_synth_qasm = qasm2_dumps(tqc)
                                 cliff_synth_stats = compute_stats(tqc)
                                 cliff_synth_swap_count = count_ops(tqc, "swap")
                                 cliff_synth_circuit_text_cx, cliff_synth_stats_cx = swap_to_3cx_text(tqc)
@@ -2007,6 +2019,7 @@ def clifford_synthesis_view():
                                 session["cliff_synth_src"] = "loaded"
                                 session["cliff_synth_hash"] = _loaded_tableau_hash()
                                 session["cliff_synth_text"] = cliff_synth_circuit_text
+                                session["cliff_synth_qasm"] = cliff_synth_qasm
                                 session["cliff_synth_stats"] = cliff_synth_stats
                                 session["cliff_synth_swap_count"] = cliff_synth_swap_count
                                 session["cliff_synth_text_cx"] = cliff_synth_circuit_text_cx
@@ -2065,6 +2078,7 @@ def clifford_synthesis_view():
 
                                     if tqc is not None:
                                         cliff_synth_circuit_text = str(tqc.draw(output="text"))
+                                        cliff_synth_qasm = qasm2_dumps(tqc)
                                         cliff_synth_stats = compute_stats(tqc)
                                         cliff_synth_swap_count = count_ops(tqc, "swap")
                                         cliff_synth_circuit_text_cx, cliff_synth_stats_cx = swap_to_3cx_text(tqc)
@@ -2072,6 +2086,7 @@ def clifford_synthesis_view():
                                         session["cliff_synth_src"] = "build"
                                         session["cliff_synth_hash"] = _circuit_hash()
                                         session["cliff_synth_text"] = cliff_synth_circuit_text
+                                        session["cliff_synth_qasm"] = cliff_synth_qasm
                                         session["cliff_synth_stats"] = cliff_synth_stats
                                         session["cliff_synth_swap_count"] = cliff_synth_swap_count
                                         session["cliff_synth_text_cx"] = cliff_synth_circuit_text_cx
@@ -2249,6 +2264,7 @@ def clifford_synthesis_view():
         cliff_tableau_bool_text=cliff_tableau_bool_text,
 
         cliff_synth_circuit_text=cliff_synth_circuit_text,
+        cliff_synth_qasm=cliff_synth_qasm,
         cliff_synth_stats=cliff_synth_stats,
         cliff_synth_swap_count=cliff_synth_swap_count,
         cliff_synth_circuit_text_cx=cliff_synth_circuit_text_cx,

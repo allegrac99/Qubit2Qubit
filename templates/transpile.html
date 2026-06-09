@@ -930,7 +930,15 @@
           {% if routed_circuit_text %}
             <hr>
             <div>
-              <h6>Circuit after routing</h6>
+              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <h6 class="mb-0">Circuit after routing</h6>
+                {% if routed_qasm_str %}
+                  <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                          data-filename="routed_circuit.qasm" data-qasm="{{ routed_qasm_str|e }}">
+                    Save (QASM)
+                  </button>
+                {% endif %}
+              </div>
               <pre>{{ routed_circuit_text }}</pre>
 
               {% if routed_stats %}
@@ -1061,12 +1069,20 @@
               <div class="mini-card">
                 <div class="d-flex justify-content-between align-items-center gap-2">
                   <strong>{{ item.method|capitalize }}</strong>
-                  {% if item.docs %}
-                    <a class="btn btn-outline-secondary btn-sm" href="{{ item.docs }}"
-                       target="_blank" rel="noopener">{{ t("Docs") }}</a>
-                  {% else %}
-                    <button class="btn btn-outline-secondary btn-sm" disabled>{{ t("Docs") }}</button>
-                  {% endif %}
+                  <div class="d-flex gap-2 flex-wrap">
+                    {% if item.circuit_qasm %}
+                      <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                              data-filename="routed_{{ item.method }}.qasm" data-qasm="{{ item.circuit_qasm|e }}">
+                        Save (QASM)
+                      </button>
+                    {% endif %}
+                    {% if item.docs %}
+                      <a class="btn btn-outline-secondary btn-sm" href="{{ item.docs }}"
+                         target="_blank" rel="noopener">{{ t("Docs") }}</a>
+                    {% else %}
+                      <button class="btn btn-outline-secondary btn-sm" disabled>{{ t("Docs") }}</button>
+                    {% endif %}
+                  </div>
                 </div>
                 <div class="small text-muted mt-1">
                   {% if item.stats %}
@@ -1155,7 +1171,15 @@
 
           {% if translated_circuit_text %}
             <hr>
-            <h6>After translation</h6>
+            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+              <h6 class="mb-0">After translation</h6>
+              {% if translated_qasm_str %}
+                <button type="button" class="btn btn-outline-secondary btn-sm save-result-qasm"
+                        data-filename="translated_circuit.qasm" data-qasm="{{ translated_qasm_str|e }}">
+                  Save (QASM)
+                </button>
+              {% endif %}
+            </div>
             <pre>{{ translated_circuit_text }}</pre>
             {% if translated_stats %}
               <ul class="small">
@@ -1716,6 +1740,7 @@ document.getElementById("mainForm").addEventListener("submit",()=>{saveScrollY()
 function qasmFromBuilderState(){const opsSorted=[...ops].sort((a,b)=>{const ca=a.col??0,cb=b.col??0;if(ca!==cb)return ca-cb;return(a.qubits?.[0]??0)-(b.qubits?.[0]??0);});let out=['OPENQASM 2.0;','include "qelib1.inc";',`qreg q[${numQubits}];`];for(const op of opsSorted){const g=(op.gate||"").toLowerCase();const qs=op.qubits||[];if(qs.length===1){const q=qs[0];if(g==="id"){}else if(["h","x","y","z","s","sdg","t","tdg","sx","sxdg"].includes(g))out.push(`${g} q[${q}];`);else throw new Error(`Unsupported: ${g}`);}else if(qs.length===2){const a=qs[0],b=qs[1];if(["cx","cy","cz","swap"].includes(g))out.push(`${g} q[${a}],q[${b}];`);else throw new Error(`Unsupported 2Q: ${g}`);}}return out.join("\n")+"\n";}
 function downloadText(filename,text){const blob=new Blob([text],{type:"text/plain"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
 document.getElementById("saveQasmBtn")?.addEventListener("click",()=>{try{downloadText("circuit.qasm",qasmFromBuilderState());}catch(e){alert((window.q2qT?q2qT("Save failed"):"Save failed")+`: ${e?.message||e}`);}});
+document.querySelectorAll(".save-result-qasm").forEach(btn=>btn.addEventListener("click",()=>{try{downloadText(btn.dataset.filename||"circuit.qasm",btn.dataset.qasm||"");}catch(e){alert((window.q2qT?q2qT("Save failed"):"Save failed")+`: ${e?.message||e}`);}}));
 const loadQasmBtn=document.getElementById("loadQasmBtn");
 const qasmFileInput=document.getElementById("qasmFileInput");
 loadQasmBtn?.addEventListener("click",()=>qasmFileInput?.click());
