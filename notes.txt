@@ -23,3 +23,5 @@ Variabili d'ambiente
 fai gitignore per non mettere .env
 
 
+ho tolto sb3_contrib==2.8.0 dai requirements
+
